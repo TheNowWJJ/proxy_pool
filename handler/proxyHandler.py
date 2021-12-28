@@ -26,14 +26,14 @@ class ProxyHandler(object):
         self.db = DbClient(self.conf.dbConn)
         self.db.changeTable(self.conf.tableName)
 
-    def get(self, https=False):
+    def get(self, https=False, region= ""):
         """
         return a proxy
         Args:
             https: True/False
         Returns:
         """
-        proxy = self.db.get(https)
+        proxy = self.db.get(https, region=region)
         return Proxy.createFromJson(proxy) if proxy else None
 
     def pop(self, https):

@@ -42,24 +42,29 @@ class ProxyFetcher(object):
                 try:
                     ip = ''.join(tr.xpath('./td[2]/text()'))
                     port_img = ''.join(tr.xpath('./td[3]/img/@src')).split("port=")[-1]
+                    region_country = ''.join(tr.xpath('./td[6]/text()'))
+                    region_province = ''.join(tr.xpath('./td[6]/font/text()'))
                     port = port_img_map.get(port_img[14:].replace('O0O', ''))
                     if port:
-                        yield '%s:%s' % (ip, port)
+                        yield '%s:%s' % (ip, port), '%s:%s' % (region_country, region_province)
                 except Exception as e:
                     print(e)
 
     @staticmethod
     def freeProxy02():
         """
-        代理66 http://www.66ip.cn/
+        代理66 http://www.66ip.cn/ (山东代理IP)
         :return:
         """
-        url = "http://www.66ip.cn/mo.php"
+        url = "http://www.66ip.cn/areaindex_15/1.html"
 
-        resp = WebRequest().get(url, timeout=10)
-        proxies = re.findall(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5})', resp.text)
-        for proxy in proxies:
-            yield proxy
+        html_tree = WebRequest().get(url, timeout=10).tree
+
+        for tr in html_tree.xpath(".//table")[2][1:]:
+            ip = ''.join(tr.xpath('./td[1]/text()'))
+            port = ''.join(tr.xpath('./td[2]/text()'))
+            region = ''.join(tr.xpath('./td[3]/text()'))
+            yield "%s:%s" % (ip, port), region
 
     @staticmethod
     def freeProxy03():
@@ -70,7 +75,8 @@ class ProxyFetcher(object):
             for tr in tree.xpath("//table[@class='active']//tr")[1:]:
                 ip = "".join(tr.xpath('./td[1]/text()')).strip()
                 port = "".join(tr.xpath('./td[2]/text()')).strip()
-                yield "%s:%s" % (ip, port)
+                region = "".join(tr.xpath('./td[6]/text()')).strip()
+                yield "%s:%s" % (ip, port), region
 
     @staticmethod
     def freeProxy04():
@@ -80,7 +86,8 @@ class ProxyFetcher(object):
         for li in tree.xpath("//div[@class='free-main col-lg-12 col-md-12 col-sm-12 col-xs-12']/ul/li")[1:]:
             ip = "".join(li.xpath('./span[1]/text()')).strip()
             port = "".join(li.xpath('./span[2]/text()')).strip()
-            yield "%s:%s" % (ip, port)
+            region = "".join(li.xpath('./span[4]/text()')).strip()
+            yield "%s:%s" % (ip, port), region
 
     @staticmethod
     def freeProxy05(page_count=1):
@@ -99,41 +106,52 @@ class ProxyFetcher(object):
             proxy_list = tree.xpath('.//table//tr')
             sleep(1)  # 必须sleep 不然第二条请求不到数据
             for tr in proxy_list[1:]:
-                yield ':'.join(tr.xpath('./td/text()')[0:2])
+                yield ':'.join(tr.xpath('./td/text()')[0:2]), "".join(tr.xpath('./td/text()')[4])
 
-    @staticmethod
-    def freeProxy06():
-        """ PROXY11 https://proxy11.com """
-        url = "https://proxy11.com/api/demoweb/proxy.json?country=hk&speed=2000"
-        try:
-            resp_json = WebRequest().get(url).json
-            for each in resp_json.get("data", []):
-                yield "%s:%s" % (each.get("ip", ""), each.get("port", ""))
-        except Exception as e:
-            print(e)
+    # @staticmethod
+    # def freeProxy06():
+    #     """ PROXY11 https://proxy11.com """
+    #     url = "https://proxy11.com/api/demoweb/proxy.json?country=hk&speed=2000"
+    #     try:
+    #         resp_json = WebRequest().get(url).json
+    #         for each in resp_json.get("data", []):
+    #             yield "%s:%s" % (each.get("ip", ""), each.get("port", ""))
+    #     except Exception as e:
+    #         print(e)
 
     @staticmethod
     def freeProxy07():
         """ 云代理 """
         urls = ['http://www.ip3366.net/free/?stype=1', "http://www.ip3366.net/free/?stype=2"]
         for url in urls:
-            r = WebRequest().get(url, timeout=10)
-            proxies = re.findall(r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\s\S]*?<td>(\d+)</td>', r.text)
-            for proxy in proxies:
-                yield ":".join(proxy)
+            html_tree = WebRequest().get(url, timeout=10).tree
+
+            for tr in html_tree.xpath(".//table/tbody/tr"):
+                ip = "".join(tr.xpath("./td[1]/text()"))
+                port = "".join(tr.xpath("./td[2]/text()"))
+                region = "".join(tr.xpath("./td[5]/text()"))
+                yield "%s:%s" % (ip, port), region
+
+    # @staticmethod
+    # def freeProxy08():
+    #     """ 小幻代理 """
+    #     urls = ['https://ip.ihuan.me/address/5Lit5Zu9.html']
+    #     for url in urls:
+    #         html_tree = WebRequest().get(url, timeout=10).tree2
+    #         for tr in html_tree.xpath(".//table/tbody/tr"):
+    #             ip = "".join(tr.xpath("./td[1]/a/text()"))
+    #             port = "".join(tr.xpath("./td[2]/text()"))
+    #             regions = tr.xpath("./td[3]/a")
+    #             region = ""
+    #             for re in regions:
+    #                 region = region + re.text
+    #             yield "%s:%s" % (ip, port), region
+    #         # proxies = re.findall(r'>\s*?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*?</a></td><td>(\d+)</td>', r.text)
+    #         # for proxy in proxies:
+    #         #     yield ":".join(proxy)
 
     @staticmethod
-    def freeProxy08():
-        """ 小幻代理 """
-        urls = ['https://ip.ihuan.me/address/5Lit5Zu9.html']
-        for url in urls:
-            r = WebRequest().get(url, timeout=10)
-            proxies = re.findall(r'>\s*?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s*?</a></td><td>(\d+)</td>', r.text)
-            for proxy in proxies:
-                yield ":".join(proxy)
-
-    @staticmethod
-    def freeProxy09(page_count=1):
+    def freeProxy09(page_count=2):
         """ 免费代理库 """
         for i in range(1, page_count + 1):
             url = 'http://ip.jiangxianli.com/?country=中国&page={}'.format(i)
@@ -141,17 +159,26 @@ class ProxyFetcher(object):
             for index, tr in enumerate(html_tree.xpath("//table//tr")):
                 if index == 0:
                     continue
-                yield ":".join(tr.xpath("./td/text()")[0:2]).strip()
+                try:
+                    ip_port = ":".join(tr.xpath("./td/text()")[0:2]).strip()
+                    yield ip_port, "".join(tr.xpath("./td/text()")[4]).strip()
+                except BaseException as e:
+                    continue
 
-    @staticmethod
-    def freeProxy10():
-        """ 89免费代理 """
-        r = WebRequest().get("https://www.89ip.cn/index_1.html", timeout=10)
-        proxies = re.findall(
-            r'<td.*?>[\s\S]*?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[\s\S]*?</td>[\s\S]*?<td.*?>[\s\S]*?(\d+)[\s\S]*?</td>',
-            r.text)
-        for proxy in proxies:
-            yield ':'.join(proxy)
+    # @staticmethod
+    # def freeProxy10():
+    #     """ 89免费代理 """
+    #     html_tree = WebRequest().get("https://www.89ip.cn/index_1.html", timeout=10).tree
+    #     for tr in html_tree.xpath(".//table/tbody/tr"):
+    #         ip = "".join(tr.xpath("./td[1]/text()")).strip()
+    #         port = "".join(tr.xpath("./td[2]/text()")).strip()
+    #         region = "".join(tr.xpath("./td[3]/text()"))
+    #         yield "%s:%s" % (ip, port), region
+        # proxies = re.findall(
+        #     r'<td.*?>[\s\S]*?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[\s\S]*?</td>[\s\S]*?<td.*?>[\s\S]*?(\d+)[\s\S]*?</td>',
+        #     r.text)
+        # for proxy in proxies:
+        #     yield ':'.join(proxy)
 
     # @staticmethod
     # def wallProxy01():
@@ -218,7 +245,7 @@ class ProxyFetcher(object):
 
 if __name__ == '__main__':
     p = ProxyFetcher()
-    for _ in p.freeProxy11():
+    for _ in p.freeProxy09():
         print(_)
 
 # http://nntime.com/proxy-list-01.htm

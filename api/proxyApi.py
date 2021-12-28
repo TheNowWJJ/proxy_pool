@@ -58,7 +58,8 @@ def index():
 @app.route('/get/')
 def get():
     https = request.args.get("type", "").lower() == 'https'
-    proxy = proxy_handler.get(https)
+    region = request.args.get("region","")
+    proxy = proxy_handler.get(https, region)
     return proxy.to_dict if proxy else {"code": 0, "src": "no proxy"}
 
 
